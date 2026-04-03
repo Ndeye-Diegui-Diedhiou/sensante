@@ -48,3 +48,8 @@ print(f"\n{'=' * 50}")
 print(" Exploration terminee !")
 print(" Prochain lab : entrainer un modele ML")
 print(f"{'=' * 50}")
+print("\n--- Répartition des patients par sexe et diagnostic ---")
+# On utilise groupby pour regrouper par les deux colonnes, puis size() pour compter
+analyse_croisee = df.groupby(["sexe", "diagnostic"]).size()
+
+print(analyse_croisee)
