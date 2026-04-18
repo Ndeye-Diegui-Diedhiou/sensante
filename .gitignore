@@ -3,8 +3,9 @@
 # Environnement Python
 __pycache__/
 *.pyc
-venv/
+venv/ 
 .env
+.venv/
 
 # Modele ML (trop gros pour GitHub)
 models/*.pkl
