@@ -184,3 +184,37 @@ for classe, proba in zip(model_loaded.classes_, probas):
 
 # Prédire
 diagnostic = model_loaded.predict([features])[0]
+
+#Exercice 1
+importances = model.feature_importances_
+for name, imp in sorted(zip(feature_cols, importances),
+    key=lambda x: x[1], reverse=True):
+    print(f" {name:20s} : {imp:.3f}")
+    
+# 1. Liste exacte des colonnes attendues par le modèle (d'après ton log)
+features_train = [
+    'age', 'sexe_encoded', 'temperature', 'tension_sys', 'toux', 
+    'fatigue', 'maux_tete', 'frissons', 'nausee', 'region_encoded'
+]
+
+# 2. Création des profils avec TOUTES les colonnes
+# On met des valeurs neutres (0) pour les colonnes qu'on ne teste pas spécifiquement
+data_test = [
+    # Patient 1 : Jeune, sain (sexe=0, tension=120, region=0)
+    [19, 0, 37.0, 120, 0, 0, 0, 0, 0, 0],
+    # Patient 2 : Adulte, fièvre, toux, maux de tête, frissons
+    [35, 1, 39.8, 130, 1, 1, 1, 1, 0, 1],
+    # Patient 3 : Âgé, légère fièvre, fatigue
+    [72, 0, 37.6, 140, 1, 1, 0, 0, 1, 2]
+]
+
+# 3. Création du DataFrame avec les bons noms de colonnes
+patients = pd.DataFrame(data_test, columns=features_train)
+
+# 4. Maintenant la prédiction fonctionnera
+predictions = model.predict(patients)
+probabilites = model.predict_proba(patients)
+
+print("--- Résultats des Tests ---")
+for i, pred in enumerate(predictions):
+    print(f"Patient {i+1} : {pred} ({np.max(probabilites[i])*100:.1f}%)")
