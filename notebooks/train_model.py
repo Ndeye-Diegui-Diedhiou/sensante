@@ -17,8 +17,8 @@ print(f"\nDiagnostics :\n{df['diagnostic'].value_counts()}")
 # Le modele ne comprend que des nombres !
 le_sexe = LabelEncoder()
 le_region = LabelEncoder()
-df['sexe_encoded'] = le_sexe.fit_transform(df['sexe'])
-df['region_encoded'] = le_region.fit_transform(df['region'])
+df['sexe_encoded'] = pd.Series(le_sexe.fit_transform(df['sexe']))
+df['region_encoded'] = pd.Series(le_region.fit_transform(df['region']))
 # Definir les features (X) et la cible (y)
 # Utilise exactement ces noms (ceux qui sont dans ton CSV)
 feature_cols = [
@@ -58,7 +58,7 @@ random_state=42
 # Entrainer sur les donnees d'entrainement
 model.fit(X_train, y_train)
 print("Modele entraine !")
-print(f"Nombre d'arbres : {model.n_estimators}")
+print(f"Nombre d'arbres : {model.get_params()['n_estimators']}")
 print(f"Nombre de features : {model.n_features_in_}")
 print(f"Classes : {list(model.classes_)}")
 
@@ -93,8 +93,8 @@ if not os.path.exists('figures'):
 # 3. Visualisation avec Seaborn
 plt.figure(figsize=(8, 6))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-            xticklabels=model.classes_, 
-            yticklabels=model.classes_)
+            xticklabels=list(model.classes_), 
+            yticklabels=list(model.classes_))
 
 plt.xlabel('Prediction du modele')
 plt.ylabel('Vrai diagnostic')
