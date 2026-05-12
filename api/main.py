@@ -8,23 +8,45 @@ import joblib
 import numpy as np
 from typing import Dict
 
-# --- Schemas Pydantic ---
-class PatientInput(BaseModel):
-    # ge=0 empechera l'age negatif au niveau du middleware FastAPI
-    age: int = Field(..., ge=0, le=120)
-    sexe: str = Field(...)
-    temperature: float = Field(..., ge=35.0, le=42.0)
-    tension_sys: int = Field(..., ge=60, le=250)
-    toux: bool = Field(...)
-    fatigue: bool = Field(...)
-    maux_tete: bool = Field(...)
-    region: str = Field(...)
+import os
+from dotenv import load_dotenv
+from groq import Groq
 
-class DiagnosticOutput(BaseModel):
+# Charger les variables d'environnement
+load_dotenv()
+
+# Client Groq (chargé au démarrage)
+groq_client = None
+groq_api_key = os.getenv("GROQ_API_KEY")
+if groq_api_key:
+    groq_client = Groq(api_key=groq_api_key)
+    print("Client Groq initialise.")
+else:
+    print("ATTENTION : GROQ_API_KEY non trouvee. / explain sera desactive.")
+    
+# --- Configuration du Prompt Système ---
+SYSTEM_PROMPT = """
+Tu es un assistant médical sénégalais.
+Tu reçois un diagnostic et des données patient.
+Explique le résultat en français simple, comme un médecin parlerait à son patient.
+Sois rassurant mais recommande toujours une consultation médicale.
+Maximum 3 phrases.
+Ne fais JAMAIS de diagnostic toi-même.
+Tu expliques uniquement le diagnostic fourni.
+"""
+
+# --- Modèles de données ---
+class ExplainInput(BaseModel):
+    sexe: str
+    age: int
+    region: str
+    temperature: float
     diagnostic: str
     probabilite: float
-    confiance: str
-    message: str
+
+class ExplainOutput(BaseModel):
+    explication: str
+    modele_llm: str = "llama-3.1-8b-instant"
 
 # --- Application FastAPI ---
 app = FastAPI(
@@ -42,6 +64,58 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Route API ---
+@app.post("/explain", response_model=ExplainOutput)
+def explain(data: ExplainInput):
+    """Expliquer un diagnostic en français avec un LLM."""
+    
+    if not groq_client:
+        return ExplainOutput(
+            explication="Service d'explication indisponible. Clé API non configurée.",
+            modele_llm="aucun"
+        )
+
+    # Construction du prompt utilisateur
+    user_prompt = (
+        f"Patient : {data.sexe}, {data.age} ans, région {data.region}\n"
+        f"Température : {data.temperature}°C\n"
+        f"Diagnostic du modèle : {data.diagnostic} (probabilité {data.probabilite:.0%})\n"
+        f"Explique ce résultat au patient."
+    )
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=200,
+            temperature=0.3
+        )
+        explication = response.choices[0].message.content or "Aucune explication disponible."
+    except Exception as e:
+        explication = f"Erreur lors de l'appel au LLM : {str(e)}"
+
+    return ExplainOutput(explication=explication)
+# --- Schemas Pydantic ---
+class PatientInput(BaseModel):
+    # ge=0 empechera l'age negatif au niveau du middleware FastAPI
+    age: int = Field(..., ge=0, le=120)
+    sexe: str = Field(...)
+    temperature: float = Field(..., ge=35.0, le=42.0)
+    tension_sys: int = Field(..., ge=60, le=250)
+    toux: bool = Field(...)
+    fatigue: bool = Field(...)
+    maux_tete: bool = Field(...)
+    region: str = Field(...)
+
+class DiagnosticOutput(BaseModel):
+    diagnostic: str
+    probabilite: float
+    confiance: str
+    message: str
 
 # --- Chargement des artefacts ---
 # On charge les modèles au démarrage pour plus d'efficacité
@@ -128,3 +202,4 @@ def predict(patient: PatientInput):
         confiance=confiance,
         message=messages.get(diagnostic, "Consultez un medecin.")
     )
+    
