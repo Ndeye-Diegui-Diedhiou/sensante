@@ -3,10 +3,13 @@
 # Lab 3 - Integration de Modeles IA - ESP / UCAD
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import joblib
 import numpy as np
 from typing import Dict
+from pathlib import Path
 
 import os
 from dotenv import load_dotenv
@@ -54,6 +57,16 @@ app = FastAPI(
     description="Assistant pre-diagnostic medical pour le Senegal",
     version="0.2.0"
 )
+
+# Servir le frontend comme fichier statique
+frontend_dir = Path(__file__).parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+
+@app.get("/")
+def serve_frontend():
+    """Servir la page d'accueil."""
+    return FileResponse(frontend_dir / "index.html")
+
 from fastapi.middleware.cors import CORSMiddleware
 # Autoriser les requetes depuis le frontend
 app.add_middleware(
@@ -202,4 +215,3 @@ def predict(patient: PatientInput):
         confiance=confiance,
         message=messages.get(diagnostic, "Consultez un medecin.")
     )
-    
