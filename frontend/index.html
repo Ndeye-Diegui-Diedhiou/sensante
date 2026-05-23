@@ -106,7 +106,7 @@
 
     <!-- JavaScript -->
     <script>
-        const API_URL = "http://localhost:8000";
+        const API_URL = "";
         const historique = [];
 
         async function diagnostiquer() {
@@ -219,8 +219,13 @@ async function demanderExplication(diagnostic_data) {
 
     const explDiv = document.createElement("div");
     explDiv.id = "explication-zone";
+    // Exercice 3 : Modification de l'interface pour minimiser les risques (Avertissement)
     explDiv.innerHTML = `
         <div class="mt-4 bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <div class="bg-orange-100 text-orange-800 text-xs font-bold p-2 rounded mb-3 flex items-start shadow-sm border border-orange-200">
+                <span class="mr-2 text-base">⚠️</span> 
+                <span>Cette explication IA ne remplace pas l'avis d'un professionnel de santé. Consultez un médecin pour un diagnostic précis.</span>
+            </div>
             <p class="text-sm text-purple-600 font-medium mb-2">Explication (Llama 3)</p>
             <p class="text-gray-500 text-sm animate-pulse">Génération en cours...</p>
         </div>
@@ -239,10 +244,18 @@ async function demanderExplication(diagnostic_data) {
 
         if (response.ok) {
             const result = await response.json();
+            // Exercice 3 : Avertissement et Bouton d'action
             explDiv.innerHTML = `
                 <div class="mt-4 bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <div class="bg-orange-100 text-orange-800 text-xs font-bold p-2 rounded mb-3 flex items-start shadow-sm border border-orange-200">
+                        <span class="mr-2 text-base">⚠️</span> 
+                        <span>Cette explication IA ne remplace pas l'avis d'un professionnel de santé. Consultez un médecin pour un diagnostic précis.</span>
+                    </div>
                     <p class="text-sm text-purple-600 font-medium mb-2">Explication (Llama 3)</p>
-                    <p class="text-gray-700 text-sm leading-relaxed">${result.explication}</p>
+                    <p class="text-gray-700 text-sm leading-relaxed mb-4">${result.explication}</p>
+                    <a href="tel:1515" class="inline-flex items-center justify-center w-full bg-teal-600 text-white font-bold py-2 rounded-lg hover:bg-teal-700 transition shadow-sm text-sm">
+                        🩺 Consulter un professionnel
+                    </a>
                 </div>
             `;
         } else {

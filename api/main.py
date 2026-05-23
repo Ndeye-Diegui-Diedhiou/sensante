@@ -25,10 +25,13 @@ else:
     print("ATTENTION : GROQ_API_KEY non trouvee. / explain sera desactive.")
     
 # --- Configuration du Prompt Système ---
+# Exercice 1 : Prompt engineering (Wolof/Français)
 SYSTEM_PROMPT = """
 Tu es un assistant médical sénégalais.
 Tu reçois un diagnostic et des données patient.
-Explique le résultat en français simple, comme un médecin parlerait à son patient.
+Explique le résultat en français simple mélangé avec quelques termes en wolof (quand un mot médical n'existe pas en wolof, garde le français et ajoute une explication en wolof).
+Commence toujours ta réponse par "Nanga def ?".
+Termine toujours ta réponse par "Jàmm rekk.".
 Sois rassurant mais recommande toujours une consultation médicale.
 Maximum 3 phrases.
 Ne fais JAMAIS de diagnostic toi-même.
@@ -92,7 +95,7 @@ def explain(data: ExplainInput):
                 {"role": "user", "content": user_prompt}
             ],
             max_tokens=200,
-            temperature=0.3
+            temperature=0.5 # Exercice 2: 
         )
         explication = response.choices[0].message.content or "Aucune explication disponible."
     except Exception as e:
@@ -120,11 +123,20 @@ class DiagnosticOutput(BaseModel):
 # --- Chargement des artefacts ---
 # On charge les modèles au démarrage pour plus d'efficacité
 try:
-    model = joblib.load("models/model.pkl")
-    le_sexe = joblib.load("models/encoder_sexe.pkl")
-    le_region = joblib.load("models/encoder_region.pkl")
-    feature_cols = joblib.load("models/feature_cols.pkl")
-    print("Tous les modeles et encodeurs ont été chargés.")
+    # Construire les chemins relatifs au répertoire parent (racine du projet)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    model_path = os.path.join(base_dir, "models", "model.pkl")
+    encoder_sexe_path = os.path.join(base_dir, "models", "le_sexe.pkl")
+    encoder_region_path = os.path.join(base_dir, "models", "le_region.pkl")
+    feature_cols_path = os.path.join(base_dir, "models", "feature_cols.pkl")
+    
+    print("Chargement du modele...")
+    model = joblib.load(model_path)
+    le_sexe = joblib.load(encoder_sexe_path)
+    le_region = joblib.load(encoder_region_path)
+    feature_cols = joblib.load(feature_cols_path)
+    classes = list(model.classes_) if hasattr(model, 'classes_') else []
+    print(f"Modele charge : {classes}")
 except Exception as e:
     print(f"Erreur de chargement : {e}")
 
@@ -202,4 +214,16 @@ def predict(patient: PatientInput):
         confiance=confiance,
         message=messages.get(diagnostic, "Consultez un medecin.")
     )
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+# Servir le frontend comme fichier statique
+app.mount ("/static ", StaticFiles( directory ="frontend"),
+
+name =" static ")
+
+@app.get ("/")
+def serve_frontend() :
+    """ Servir la page d'accueil ."""
+    return FileResponse ("frontend/index.html")    
     
